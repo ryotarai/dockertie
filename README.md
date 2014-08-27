@@ -1,4 +1,4 @@
-Dockerport
+Dockertie
 ==========
 
 Tiny Docker coordinator
@@ -7,6 +7,6 @@ Usage
 -----
 
 ```
-$ dockerport
+$ dockertie
 ```
 
