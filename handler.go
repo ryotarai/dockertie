@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 )
 
 type HttpHandler struct {
@@ -43,6 +44,7 @@ func (h HttpHandler) HandleHosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 }
 
@@ -68,12 +70,24 @@ func (h HttpHandler) HandleHostContainers(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 }
 
 func (h HttpHandler) HandleContainers(w http.ResponseWriter, r *http.Request) {
 	h.LogRequest(w, r)
 
+	switch r.Method {
+	case "GET":
+		h.HandleContainersGet(w, r)
+	case "POST":
+		h.HandleContainersPost(w, r)
+	default:
+		http.Error(w, http.StatusText(404), 404)
+	}
+}
+
+func (h HttpHandler) HandleContainersGet(w http.ResponseWriter, r *http.Request) {
 	hosts, err := h.Discoverer.GetHosts(nil)
 	if (h.HandleError(err, w)) {
 		return
@@ -89,6 +103,36 @@ func (h HttpHandler) HandleContainers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+}
+
+func (h HttpHandler) HandleContainersPost(w http.ResponseWriter, r *http.Request) {
+	b, err := ioutil.ReadAll(r.Body)
+	if (h.HandleError(err, w)) {
+		return
+	}
+	r.Body.Close()
+
+	var config ContainerConfig
+	json.Unmarshal(b, &config)
+
+	hosts, err := h.Discoverer.GetHosts(nil)
+	if (h.HandleError(err, w)) {
+		return
+	}
+
+	container, err := h.Containerizer.CreateContainer(hosts[0], config)
+	if (h.HandleError(err, w)) {
+		return
+	}
+
+	b, err = json.Marshal(container)
+	if (h.HandleError(err, w)) {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 }
 

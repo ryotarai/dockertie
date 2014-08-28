@@ -18,9 +18,16 @@ type Container struct {
 	Host Host
 }
 
+type ContainerConfig struct {
+	Image string
+	Cmd []string
+	Env []string
+}
+
 type Containerizer interface {
-	GetContainersOnHost(host Host) ([]Container, error)
-	GetContainersOnHosts(hosts []Host) ([]Container, error)
+	GetContainersOnHost(Host) ([]Container, error)
+	GetContainersOnHosts([]Host) ([]Container, error)
+	CreateContainer(Host, ContainerConfig) (*docker.Container, error)
 }
 
 func NewContainerizer(name string, c *cli.Context) Containerizer {
@@ -101,7 +108,7 @@ func (c DockerContainerizer) GetContainersOnHosts(hosts []Host) ([]Container, er
 		var wg sync.WaitGroup
 		for _, host := range hosts {
 			wg.Add(1)
-			go func() {
+			go func(host Host) {
 				c, err := c.GetContainersOnHost(host)
 				if (err != nil) {
 					log.Println(err)
@@ -109,7 +116,7 @@ func (c DockerContainerizer) GetContainersOnHosts(hosts []Host) ([]Container, er
 				}
 				receiver <- c
 				wg.Done()
-			}()
+			}(host)
 		}
 		wg.Wait()
 		fin <- true
@@ -123,5 +130,26 @@ func (c DockerContainerizer) GetContainersOnHosts(hosts []Host) ([]Container, er
 			return containers, nil
 		}
 	}
+}
+
+func (c DockerContainerizer) CreateContainer(host Host, config ContainerConfig) (*docker.Container, error) {
+	log.Println(config)
+	dockerConfig := docker.Config{
+		Image: config.Image,
+	}
+	log.Println(dockerConfig)
+
+	options := docker.CreateContainerOptions{
+		Config: &dockerConfig,
+	}
+
+	client, err := c.getClient(host)
+	if (err != nil) {
+		return nil, err
+	}
+
+	log.Println(options)
+
+	return client.CreateContainer(options)
 }
 
