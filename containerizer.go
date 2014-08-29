@@ -1,27 +1,29 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"strconv"
-	"github.com/fsouza/go-dockerclient"
-	"github.com/codegangsta/cli"
 	"strings"
 	"sync"
+
+	"github.com/codegangsta/cli"
+	"github.com/fsouza/go-dockerclient"
 )
 
 type Container struct {
-	Id string
+	Id   string
 	Name string
 	Path string
 	Args []string
-	Env map[string]string
+	Env  map[string]string
 	Host Host
 }
 
 type ContainerConfig struct {
 	Image string
-	Cmd []string
-	Env []string
+	Cmd   []string
+	Env   []string
 }
 
 type Containerizer interface {
@@ -59,7 +61,7 @@ func (c DockerContainerizer) getClient(host Host) (*docker.Client, error) {
 
 func (c DockerContainerizer) GetContainersOnHost(host Host) ([]Container, error) {
 	client, err := c.getClient(host)
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -67,14 +69,14 @@ func (c DockerContainerizer) GetContainersOnHost(host Host) ([]Container, error)
 	dockerContainers, err := client.ListContainers(
 		docker.ListContainersOptions{},
 	)
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
 	containers := []Container{}
 	for _, dockerContainer := range dockerContainers {
 		inspection, err := client.InspectContainer(dockerContainer.ID)
-		if (err != nil) {
+		if err != nil {
 			return nil, err
 		}
 
@@ -85,11 +87,11 @@ func (c DockerContainerizer) GetContainersOnHost(host Host) ([]Container, error)
 		}
 
 		container := Container{
-			Id: inspection.ID,
+			Id:   inspection.ID,
 			Name: inspection.Name,
 			Path: inspection.Path,
 			Args: inspection.Args,
-			Env: env,
+			Env:  env,
 			Host: host,
 		}
 		containers = append(containers, container)
@@ -109,13 +111,15 @@ func (c DockerContainerizer) GetContainersOnHosts(hosts []Host) ([]Container, er
 		for _, host := range hosts {
 			wg.Add(1)
 			go func(host Host) {
+				defer func() {
+					wg.Done()
+				}()
 				c, err := c.GetContainersOnHost(host)
-				if (err != nil) {
+				if err != nil {
 					log.Println(err)
 					return
 				}
 				receiver <- c
-				wg.Done()
 			}(host)
 		}
 		wg.Wait()
@@ -132,10 +136,27 @@ func (c DockerContainerizer) GetContainersOnHosts(hosts []Host) ([]Container, er
 	}
 }
 
+func (c DockerContainerizer) FindAvailableHost(hosts []Host) (*Host, error) {
+	for _, host := range hosts {
+		containers, err := c.GetContainersOnHost(host)
+		if err != nil {
+			continue
+		}
+
+		for _, _ = range containers {
+		}
+
+		return &host, nil
+	}
+
+	return nil, errors.New("Cannot find available host")
+}
+
 func (c DockerContainerizer) CreateContainer(host Host, config ContainerConfig) (*docker.Container, error) {
 	log.Println(config)
 	dockerConfig := docker.Config{
 		Image: config.Image,
+		Cmd: config.Cmd,
 	}
 	log.Println(dockerConfig)
 
@@ -144,7 +165,7 @@ func (c DockerContainerizer) CreateContainer(host Host, config ContainerConfig) 
 	}
 
 	client, err := c.getClient(host)
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -152,4 +173,3 @@ func (c DockerContainerizer) CreateContainer(host Host, config ContainerConfig) 
 
 	return client.CreateContainer(options)
 }
-
