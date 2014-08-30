@@ -12,13 +12,13 @@ import (
 )
 
 type Container struct {
-	Id   string
-	Name string
-	Path string
-	Args []string
-	Env  map[string]string
-	Host Host
-	CpuCapacity int32
+	Id             string
+	Name           string
+	Path           string
+	Args           []string
+	Env            map[string]string
+	Host           Host
+	CpuCapacity    int32
 	MemoryCapacity int32
 }
 
@@ -97,7 +97,7 @@ func (c DockerContainerizer) GetContainersOnHost(host Host) ([]Container, error)
 		}
 
 		var (
-			cpuCapacity int32
+			cpuCapacity    int32
 			memoryCapacity int32
 		)
 
@@ -118,13 +118,13 @@ func (c DockerContainerizer) GetContainersOnHost(host Host) ([]Container, error)
 		}
 
 		container := Container{
-			Id:   inspection.ID,
-			Name: inspection.Name,
-			Path: inspection.Path,
-			Args: inspection.Args,
-			Env:  env,
-			Host: host,
-			CpuCapacity: cpuCapacity,
+			Id:             inspection.ID,
+			Name:           inspection.Name,
+			Path:           inspection.Path,
+			Args:           inspection.Args,
+			Env:            env,
+			Host:           host,
+			CpuCapacity:    cpuCapacity,
 			MemoryCapacity: memoryCapacity,
 		}
 		containers = append(containers, container)
@@ -177,7 +177,7 @@ func (c DockerContainerizer) FindAvailableHost(hosts []Host) (*Host, error) {
 		}
 
 		var (
-			sumOfCpuCapacity int32
+			sumOfCpuCapacity    int32
 			sumOfMemoryCapacity int32
 		)
 
@@ -197,8 +197,8 @@ func (c DockerContainerizer) FindAvailableHost(hosts []Host) (*Host, error) {
 func (c DockerContainerizer) RunContainer(host Host, config ContainerConfig) (*docker.Container, error) {
 	dockerConfig := docker.Config{
 		Image: config.Image,
-		Cmd: config.Cmd,
-		Env: config.Env,
+		Cmd:   config.Cmd,
+		Env:   config.Env,
 	}
 
 	options := docker.CreateContainerOptions{
@@ -223,4 +223,3 @@ func (c DockerContainerizer) RunContainer(host Host, config ContainerConfig) (*d
 
 	return container, nil
 }
-

@@ -1,56 +1,56 @@
 package main
 
 import (
-	"os"
-	"net/http"
-	"log"
-	"strconv"
 	"github.com/codegangsta/cli"
 	"github.com/gorilla/mux"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "dockertie"
 	app.Usage = "Port for Docker"
-	app.Flags = []cli.Flag {
+	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name: "containerizer",
+			Name:  "containerizer",
 			Value: "docker",
 			Usage: "Containerizer (valid options: docker)",
 		},
 		cli.StringFlag{
-			Name: "discoverer",
+			Name:  "discoverer",
 			Value: "ec2",
 			Usage: "Discoverer (valid options: ec2, json)",
 		},
 		cli.StringFlag{
-			Name: "bind",
+			Name:  "bind",
 			Value: "",
 			Usage: "IP Address to bind",
 		},
 		cli.IntFlag{
-			Name: "port",
+			Name:  "port",
 			Value: 8080,
 			Usage: "HTTP Port",
 		},
 		cli.IntFlag{
-			Name: "docker-http-port",
+			Name:  "docker-http-port",
 			Value: 4243,
 			Usage: "HTTP Port for Docker API",
 		},
 		cli.StringFlag{
-			Name: "ec2-region",
+			Name:  "ec2-region",
 			Value: "us-east-1",
 			Usage: "EC2 Region (us-east-1, us-west-1, us-west-2, eu-west-1, ap-southeast-1, ap-southeast-2, ap-northeast-1 or sa-east-1)",
 		},
 		cli.StringFlag{
-			Name: "ec2-tag",
+			Name:  "ec2-tag",
 			Value: "",
 			Usage: "Tag of Docker hosts",
 		},
 		cli.StringFlag{
-			Name: "json-discoverer-path",
+			Name:  "json-discoverer-path",
 			Value: "",
 			Usage: "JSON Path for discoverer",
 		},
@@ -61,7 +61,7 @@ func main() {
 
 		handler := HttpHandler{
 			Containerizer: containerizer,
-			Discoverer: discoverer,
+			Discoverer:    discoverer,
 		}
 
 		r := mux.NewRouter()

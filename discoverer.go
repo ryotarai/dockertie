@@ -3,22 +3,22 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"github.com/codegangsta/cli"
 	"github.com/mitchellh/goamz/aws"
 	"github.com/mitchellh/goamz/ec2"
-	"github.com/codegangsta/cli"
 	"io/ioutil"
+	"log"
 	"strings"
 )
 
 type Host struct {
-	Id string
-	Name string
-	Tags map[string]string
-	Addr string
+	Id                string
+	Name              string
+	Tags              map[string]string
+	Addr              string
 	ContainerizerInfo map[string]string
-	CpuCapacity int32
-	MemoryCapacity int32
+	CpuCapacity       int32
+	MemoryCapacity    int32
 }
 
 type Discoverer interface {
@@ -42,7 +42,7 @@ type JsonDiscoverer struct {
 
 func NewJsonDiscoverer(c *cli.Context) JsonDiscoverer {
 	path := c.String("json-discoverer-path")
-	if (path == "") {
+	if path == "" {
 		log.Fatal(errors.New("You must specify --json-discoverer-path option"))
 	}
 
@@ -51,18 +51,18 @@ func NewJsonDiscoverer(c *cli.Context) JsonDiscoverer {
 
 func (d JsonDiscoverer) GetHosts(ids []string) ([]Host, error) {
 	bytes, err := ioutil.ReadFile(d.Path)
-	if (err != nil) {
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	hosts := []Host{}
 	err = json.Unmarshal(bytes, &hosts)
-	if (err != nil) {
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	var filteredHosts []Host
-	if (ids == nil) {
+	if ids == nil {
 		filteredHosts = hosts
 	} else {
 		filteredHosts = []Host{}
@@ -80,8 +80,8 @@ func (d JsonDiscoverer) GetHosts(ids []string) ([]Host, error) {
 }
 
 type Ec2Discoverer struct {
-	Client *ec2.EC2
-	TagKey string
+	Client   *ec2.EC2
+	TagKey   string
 	TagValue string
 }
 
@@ -92,7 +92,7 @@ func NewEc2Discoverer(c *cli.Context) Ec2Discoverer {
 	}
 
 	tag := c.String("ec2-tag")
-	if (tag == "") {
+	if tag == "" {
 		log.Fatal(errors.New("You must specify --ec2-tag option"))
 	}
 
@@ -122,15 +122,15 @@ func NewEc2Discoverer(c *cli.Context) Ec2Discoverer {
 
 	client := ec2.New(auth, region)
 	return Ec2Discoverer{
-		Client: client,
-		TagKey: tagKey,
+		Client:   client,
+		TagKey:   tagKey,
 		TagValue: tagValue,
 	}
 }
 
 func (d Ec2Discoverer) GetHosts(ids []string) ([]Host, error) {
 	resp, err := d.Client.Instances(ids, nil)
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -142,12 +142,12 @@ func (d Ec2Discoverer) GetHosts(ids []string) ([]Host, error) {
 				tags[tag.Key] = tag.Value
 			}
 
-			if (tags[d.TagKey] != d.TagValue) {
+			if tags[d.TagKey] != d.TagValue {
 				continue
 			}
 
 			host := Host{
-				Id: instance.InstanceId,
+				Id:   instance.InstanceId,
 				Name: tags["Name"],
 				Tags: tags,
 				Addr: instance.PrivateIpAddress,
@@ -157,4 +157,3 @@ func (d Ec2Discoverer) GetHosts(ids []string) ([]Host, error) {
 	}
 	return hosts, nil
 }
-
