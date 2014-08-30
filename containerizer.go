@@ -23,9 +23,12 @@ type Container struct {
 }
 
 type ContainerConfig struct {
-	Image string
-	Cmd   []string
-	Env   []string
+	Image          string
+	Cmd            []string
+	Env            []string
+	Tags           map[string]string
+	CpuCapacity    int32
+	MemoryCapacity int32
 }
 
 type Containerizer interface {
@@ -195,10 +198,25 @@ func (c DockerContainerizer) FindAvailableHost(hosts []Host) (*Host, error) {
 }
 
 func (c DockerContainerizer) RunContainer(host Host, config ContainerConfig) (*docker.Container, error) {
+	tags := config.Tags
+	if tags == nil {
+		tags = map[string]string{}
+	}
+
+	tags["CPU_CAPACITY"] = strconv.Itoa(int(config.CpuCapacity))
+	tags["MEMORY_CAPACITY"] = strconv.Itoa(int(config.MemoryCapacity))
+
+	env := config.Env
+	for key, value := range tags {
+		key = strings.ToUpper(key)
+		key = strings.Replace(key, " ", "_", -1)
+		env = append(env, "DOCKERTIE_" + key + "=" + value)
+	}
+
 	dockerConfig := docker.Config{
 		Image: config.Image,
 		Cmd:   config.Cmd,
-		Env:   config.Env,
+		Env:   env,
 	}
 
 	options := docker.CreateContainerOptions{
