@@ -34,7 +34,7 @@ type ContainerConfig struct {
 type Containerizer interface {
 	GetContainersOnHost(Host) ([]Container, error)
 	GetContainersOnHosts([]Host) ([]Container, error)
-	FindAvailableHost([]Host) (*Host, error)
+	FindAvailableHost([]Host, ContainerConfig) (*Host, error)
 	RunContainer(Host, ContainerConfig) (*docker.Container, error)
 }
 
@@ -172,7 +172,7 @@ func (c DockerContainerizer) GetContainersOnHosts(hosts []Host) ([]Container, er
 	}
 }
 
-func (c DockerContainerizer) FindAvailableHost(hosts []Host) (*Host, error) {
+func (c DockerContainerizer) FindAvailableHost(hosts []Host, config ContainerConfig) (*Host, error) {
 	for _, host := range hosts {
 		containers, err := c.GetContainersOnHost(host)
 		if err != nil {
@@ -188,6 +188,9 @@ func (c DockerContainerizer) FindAvailableHost(hosts []Host) (*Host, error) {
 			sumOfCpuCapacity += container.CpuCapacity
 			sumOfMemoryCapacity += container.MemoryCapacity
 		}
+
+		sumOfCpuCapacity += config.CpuCapacity
+		sumOfMemoryCapacity += config.MemoryCapacity
 
 		if sumOfCpuCapacity <= host.CpuCapacity && sumOfMemoryCapacity <= host.MemoryCapacity {
 			return &host, nil
