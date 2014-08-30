@@ -12,19 +12,19 @@ $ export AWS_SECRET_KEY=xxxxxxxxxxx
 $ dockertie --discoverer ec2 --containerizer docker
 ```
 
-## GET /hosts
+### GET /hosts
 
 List all hosts
 
-## GET /hosts/HOST_ID/container
+### GET /hosts/HOST_ID/container
 
 List containers on the host
 
-## GET /containers
+### GET /containers
 
 List all containers
 
-## POST /containers
+### POST /containers
 
 Create a container on available host.
 
