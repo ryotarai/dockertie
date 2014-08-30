@@ -53,7 +53,18 @@ func NewDockerContainerizer(c *cli.Context) DockerContainerizer {
 }
 
 func (c DockerContainerizer) getClient(host Host) (*docker.Client, error) {
-	port := c.DefaultPort
+	var (
+		port int
+		err error
+	)
+	if s, ok := host.ContainerizerInfo["DockerPort"]; ok {
+		port, err = strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		port = c.DefaultPort
+	}
 	endpoint := "tcp://" + host.Addr + ":" + strconv.Itoa(port)
 	log.Printf("Docker endpoint: %s", endpoint)
 	return docker.NewClient(endpoint)
