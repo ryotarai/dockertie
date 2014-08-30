@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/codegangsta/cli"
 	"github.com/mitchellh/goamz/aws"
 	"github.com/mitchellh/goamz/ec2"
@@ -99,25 +100,10 @@ func NewEc2Discoverer(c *cli.Context) Ec2Discoverer {
 	t := strings.Split(tag, ":")
 	tagKey, tagValue := t[0], t[1]
 
-	var region aws.Region
-
-	switch c.String("ec2-region") {
-	case "us-east-1":
-		region = aws.USEast
-	case "us-west-1":
-		region = aws.USWest
-	case "us-west-2":
-		region = aws.USWest2
-	case "eu-west-1":
-		region = aws.EUWest
-	case "ap-southeast-1":
-		region = aws.APSoutheast
-	case "ap-southeast-2":
-		region = aws.APSoutheast2
-	case "ap-northeast-1":
-		region = aws.APNortheast
-	case "sa-east-1":
-		region = aws.SAEast
+	regionStr := c.String("ec2-region")
+	region, ok := aws.Regions[regionStr]
+	if !ok {
+		log.Fatal(fmt.Errorf("%s region is not valid", regionStr))
 	}
 
 	client := ec2.New(auth, region)
