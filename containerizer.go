@@ -18,6 +18,8 @@ type Container struct {
 	Args []string
 	Env  map[string]string
 	Host Host
+	CpuCapacity int32
+	MemoryCapacity int32
 }
 
 type ContainerConfig struct {
@@ -29,7 +31,8 @@ type ContainerConfig struct {
 type Containerizer interface {
 	GetContainersOnHost(Host) ([]Container, error)
 	GetContainersOnHosts([]Host) ([]Container, error)
-	CreateContainer(Host, ContainerConfig) (*docker.Container, error)
+	FindAvailableHost([]Host) (*Host, error)
+	RunContainer(Host, ContainerConfig) (*docker.Container, error)
 }
 
 func NewContainerizer(name string, c *cli.Context) Containerizer {
@@ -93,6 +96,27 @@ func (c DockerContainerizer) GetContainersOnHost(host Host) ([]Container, error)
 			env[keyValue[0]] = keyValue[1]
 		}
 
+		var (
+			cpuCapacity int32
+			memoryCapacity int32
+		)
+
+		if s, ok := env["DOCKERTIE_CPU_CAPACITY"]; ok {
+			i, err := strconv.Atoi(s)
+			if err != nil {
+				return nil, err
+			}
+			cpuCapacity = int32(i)
+		}
+
+		if s, ok := env["DOCKERTIE_MEMORY_CAPACITY"]; ok {
+			i, err := strconv.Atoi(s)
+			if err != nil {
+				return nil, err
+			}
+			memoryCapacity = int32(i)
+		}
+
 		container := Container{
 			Id:   inspection.ID,
 			Name: inspection.Name,
@@ -100,6 +124,8 @@ func (c DockerContainerizer) GetContainersOnHost(host Host) ([]Container, error)
 			Args: inspection.Args,
 			Env:  env,
 			Host: host,
+			CpuCapacity: cpuCapacity,
+			MemoryCapacity: memoryCapacity,
 		}
 		containers = append(containers, container)
 	}
@@ -150,22 +176,30 @@ func (c DockerContainerizer) FindAvailableHost(hosts []Host) (*Host, error) {
 			continue
 		}
 
-		for _, _ = range containers {
+		var (
+			sumOfCpuCapacity int32
+			sumOfMemoryCapacity int32
+		)
+
+		for _, container := range containers {
+			sumOfCpuCapacity += container.CpuCapacity
+			sumOfMemoryCapacity += container.MemoryCapacity
 		}
 
-		return &host, nil
+		if sumOfCpuCapacity <= host.CpuCapacity && sumOfMemoryCapacity <= host.MemoryCapacity {
+			return &host, nil
+		}
 	}
 
 	return nil, errors.New("Cannot find available host")
 }
 
-func (c DockerContainerizer) CreateContainer(host Host, config ContainerConfig) (*docker.Container, error) {
-	log.Println(config)
+func (c DockerContainerizer) RunContainer(host Host, config ContainerConfig) (*docker.Container, error) {
 	dockerConfig := docker.Config{
 		Image: config.Image,
 		Cmd: config.Cmd,
+		Env: config.Env,
 	}
-	log.Println(dockerConfig)
 
 	options := docker.CreateContainerOptions{
 		Config: &dockerConfig,
@@ -176,7 +210,17 @@ func (c DockerContainerizer) CreateContainer(host Host, config ContainerConfig) 
 		return nil, err
 	}
 
-	log.Println(options)
+	container, err := client.CreateContainer(options)
+	if err != nil {
+		return nil, err
+	}
 
-	return client.CreateContainer(options)
+	hostConfig := docker.HostConfig{}
+	err = client.StartContainer(container.ID, &hostConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
 }
+

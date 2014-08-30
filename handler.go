@@ -122,7 +122,12 @@ func (h HttpHandler) HandleContainersPost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	container, err := h.Containerizer.CreateContainer(hosts[0], config)
+	host, err := h.Containerizer.FindAvailableHost(hosts)
+	if (h.HandleError(err, w)) {
+		return
+	}
+
+	container, err := h.Containerizer.RunContainer(*host, config)
 	if (h.HandleError(err, w)) {
 		return
 	}

@@ -17,6 +17,8 @@ type Host struct {
 	Tags map[string]string
 	Addr string
 	ContainerizerInfo map[string]string
+	CpuCapacity int32
+	MemoryCapacity int32
 }
 
 type Discoverer interface {
