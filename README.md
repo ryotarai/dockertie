@@ -38,7 +38,7 @@ Currently, `ec2` and `json` discoverers are supported.
 Containerizer
 -------------
 
-Containerizer is what create containers.
+Containerizer is what creates containers.
 
 Currently, `docker` containerizer is supported.
 
